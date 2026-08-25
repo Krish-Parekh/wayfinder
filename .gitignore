@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# uv
+.uv/
+
+# Node
+node_modules/
+dist/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# AWS / secrets
+.aws/
+*.pem
+credentials
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+
+# design docs stay local
+docs/
