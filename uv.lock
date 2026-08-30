@@ -1410,6 +1410,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "strands-agents", extra = ["a2a"] },
     { name = "strands-agents-tools" },
+    { name = "tenacity" },
     { name = "typer" },
 ]
 
@@ -1420,6 +1421,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.7" },
     { name = "strands-agents", extras = ["a2a"], specifier = "==1.53.0" },
     { name = "strands-agents-tools", specifier = "==0.8.6" },
+    { name = "tenacity", specifier = ">=9.1" },
     { name = "typer", specifier = ">=0.15" },
 ]
 

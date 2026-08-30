@@ -33,3 +33,6 @@ credentials
 
 # design docs stay local
 docs/
+
+# HTTP response cache
+.cache/

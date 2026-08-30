@@ -1,5 +1,8 @@
+from mcp.client.streamable_http import streamablehttp_client
 from strands import Agent
+from strands.tools.mcp import MCPClient
 
+from wayfinder.config import settings
 from wayfinder.models import build_model
 
 PLANNER_SYSTEM_PROMPT = """You are a trip planner.
@@ -24,3 +27,7 @@ def build_planner(tools: list | None = None) -> Agent:
         tools=tools or [],
         callback_handler=None,
     )
+
+
+def mcp_client() -> MCPClient:
+    return MCPClient(lambda: streamablehttp_client(settings.mcp_url))
