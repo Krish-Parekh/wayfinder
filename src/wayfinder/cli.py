@@ -34,3 +34,19 @@ def ask(
     with client:
         agent = build_planner(tools=client.list_tools_sync())
         typer.echo(str(agent(question)))
+
+
+@app.command()
+def plan(request: str) -> None:
+    """Plan a trip using the full multi-agent fleet.
+
+    Requires the tools server and all three specialists to be running
+    (`just fleet`).
+    """
+    import asyncio
+    import logging
+
+    from wayfinder.orchestrator import plan_trip
+
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
+    typer.echo(asyncio.run(plan_trip(request)))
