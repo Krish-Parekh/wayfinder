@@ -1,8 +1,35 @@
 from wayfinder.geocoding import geocode
 from wayfinder.http import CachedClient
-from wayfinder.types import Route, RouteLeg
+from wayfinder.types import Place, Route, RouteLeg
 
-OSRM_BASE = "https://router.project-osrm.org/route/v1/driving"
+# BRouter, not OSRM: router.project-osrm.org now resolves to the FOSSGIS host
+# that also serves valhalla1.openstreetmap.de, and that host is unreachable.
+# BRouter is the remaining routing service that needs no API key.
+BROUTER_URL = "https://brouter.de/brouter"
+
+
+def _leg(origin: Place, destination: Place, client: CachedClient) -> tuple[float, float]:
+    """Return (distance_km, duration_hours) for one pair of points.
+
+    BRouter returns a single track for a multi-point request, so legs are
+    fetched a pair at a time to keep per-day distances honest.
+    """
+    payload = client.get_json(
+        BROUTER_URL,
+        params={
+            "lonlats": (
+                f"{origin.lon},{origin.lat}|{destination.lon},{destination.lat}"
+            ),
+            "profile": "car-fast",
+            "alternativeidx": 0,
+            "format": "geojson",
+        },
+    )
+    properties = payload["features"][0]["properties"]
+    return (
+        float(properties["track-length"]) / 1000,
+        float(properties["total-time"]) / 3600,
+    )
 
 
 def route(waypoints: list[str], *, client: CachedClient | None = None) -> Route:
@@ -12,24 +39,26 @@ def route(waypoints: list[str], *, client: CachedClient | None = None) -> Route:
     client = client or CachedClient()
     places = [geocode(name, client=client) for name in waypoints]
 
-    coords = ";".join(f"{p.lon},{p.lat}" for p in places)
-    payload = client.get_json(f"{OSRM_BASE}/{coords}", params={"overview": "false"})
-
-    if payload.get("code") != "Ok":
-        raise ValueError(f"OSRM returned {payload.get('code')!r} for {waypoints}")
-
-    osrm_route = payload["routes"][0]
-    legs = [
-        RouteLeg(
-            from_name=waypoints[i],
-            to_name=waypoints[i + 1],
-            distance_km=leg["distance"] / 1000,
-            duration_hours=leg["duration"] / 3600,
+    legs: list[RouteLeg] = []
+    for i, (origin, destination) in enumerate(zip(places, places[1:], strict=False)):
+        try:
+            distance_km, duration_hours = _leg(origin, destination, client)
+        except ValueError as exc:
+            # BRouter reports failures as plain text, which fails JSON parsing.
+            raise ValueError(
+                f"No route from {waypoints[i]!r} to {waypoints[i + 1]!r}: {exc}"
+            ) from exc
+        legs.append(
+            RouteLeg(
+                from_name=waypoints[i],
+                to_name=waypoints[i + 1],
+                distance_km=distance_km,
+                duration_hours=duration_hours,
+            )
         )
-        for i, leg in enumerate(osrm_route["legs"])
-    ]
+
     return Route(
         legs=legs,
-        total_distance_km=osrm_route["distance"] / 1000,
-        total_duration_hours=osrm_route["duration"] / 3600,
+        total_distance_km=sum(leg.distance_km for leg in legs),
+        total_duration_hours=sum(leg.duration_hours for leg in legs),
     )

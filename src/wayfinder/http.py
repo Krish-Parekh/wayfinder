@@ -12,7 +12,10 @@ from wayfinder.config import settings
 
 DEFAULT_CACHE_DIR = Path(".cache/http")
 
-HOST_MIN_INTERVAL_S = {"nominatim.openstreetmap.org": 1.0}
+HOST_MIN_INTERVAL_S = {
+    "nominatim.openstreetmap.org": 1.0,
+    "brouter.de": 1.0,  # community server, one leg per request
+}
 DEFAULT_MIN_INTERVAL_S = 0.1
 
 RETRYABLE_STATUS = {429, 500, 502, 503, 504}
