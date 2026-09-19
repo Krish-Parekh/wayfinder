@@ -25,9 +25,9 @@ logger = logging.getLogger("wayfinder.orchestrator")
 ROUTE_SPECIALIST = "route-planner"
 
 SPECIALISTS: dict[str, str] = {
-    "route-planner": f"http://127.0.0.1:{settings.route_planner_port}",
-    "places-researcher": f"http://127.0.0.1:{settings.places_researcher_port}",
-    "food-scout": f"http://127.0.0.1:{settings.food_scout_port}",
+    "route-planner": settings.route_planner_url,
+    "places-researcher": settings.places_researcher_url,
+    "food-scout": settings.food_scout_url,
 }
 
 COMPOSER_SYSTEM_PROMPT = """You compose a final trip plan from specialist reports.

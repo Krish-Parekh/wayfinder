@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: route-planner
+  namespace: wayfinder
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: route-planner
+  template:
+    metadata:
+      labels:
+        app: route-planner
+        role: specialist
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: route-planner
+          image: wayfinder:dev
+          imagePullPolicy: Never
+          command: ["python", "-m", "wayfinder.route_planner"]
+          envFrom:
+            - configMapRef:
+                name: wayfinder-config
+            - secretRef:
+                name: bedrock-creds
+          ports:
+            - containerPort: 9001
+          readinessProbe:
+            httpGet:
+              path: /.well-known/agent-card.json
+              port: 9001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: route-planner
+  namespace: wayfinder
+spec:
+  type: NodePort
+  selector:
+    app: route-planner
+  ports:
+    - port: 9001
+      targetPort: 9001
+      nodePort: 30001

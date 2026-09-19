@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tools
+  namespace: wayfinder
+spec:
+  clusterIP: None
+  selector:
+    app: tools
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: tools
+  namespace: wayfinder
+spec:
+  serviceName: tools
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tools
+  template:
+    metadata:
+      labels:
+        app: tools
+        role: tools
+    spec:
+      enableServiceLinks: false
+      initContainers:
+        - name: chown-cache
+          image: busybox:1.36
+          command: ["chown", "1000:1000", "/app/.cache"]
+          volumeMounts:
+            - name: http-cache
+              mountPath: /app/.cache
+      containers:
+        - name: tools
+          image: wayfinder:dev
+          imagePullPolicy: Never
+          command: ["wayfinder", "serve-tools"]
+          env:
+            - name: MCP_HOST
+              value: "0.0.0.0"
+            - name: MCP_PORT
+              value: "8000"
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: http-cache
+              mountPath: /app/.cache
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 512Mi }
+  volumeClaimTemplates:
+    - metadata:
+        name: http-cache
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

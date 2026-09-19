@@ -5,7 +5,6 @@ description = "Multi-agent trip planner on Strands, MCP and A2A"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "strands-agents[a2a]==1.53.0",
-    "strands-agents-tools==0.8.6",
     "httpx>=0.28",
     "pydantic>=2.10",
     "pydantic-settings>=2.7",

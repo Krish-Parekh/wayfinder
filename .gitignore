@@ -36,3 +36,6 @@ docs/
 
 # HTTP response cache
 .cache/
+
+# Real Bedrock credentials for the cluster; see k8s/secret.example.yml
+k8s/secret.yml

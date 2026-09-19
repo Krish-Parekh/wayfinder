@@ -1,6 +1,7 @@
 from strands import Agent
 from strands.multiagent.a2a import A2AServer
 
+from wayfinder.config import settings
 from wayfinder.models import build_model
 from wayfinder.planner import mcp_client
 
@@ -34,4 +35,4 @@ def serve_specialist(
         def agent_factory(context_id: str) -> Agent:
             return build_specialist(name, description, system_prompt, tools)
 
-        A2AServer(agent_factory=agent_factory, port=port).serve()
+        A2AServer(agent_factory=agent_factory, host=settings.a2a_host, port=port).serve()
