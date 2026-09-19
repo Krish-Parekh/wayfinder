@@ -22,6 +22,8 @@ from wayfinder.models import build_model
 
 logger = logging.getLogger("wayfinder.orchestrator")
 
+ROUTE_SPECIALIST = "route-planner"
+
 SPECIALISTS: dict[str, str] = {
     "route-planner": f"http://127.0.0.1:{settings.route_planner_port}",
     "places-researcher": f"http://127.0.0.1:{settings.places_researcher_port}",
@@ -77,9 +79,33 @@ async def fan_out(
     return dict(pairs)
 
 
+async def staged_fan_out(request: str, endpoints: dict[str, str]) -> dict[str, str]:
+    """Two waves: route-planner first, then the rest with the route in hand.
+
+    places-researcher and food-scout need to know which towns the trip passes
+    through before they can search, so they wait for the route. Wave 2 is
+    still a genuine parallel fan-out.
+    """
+    if ROUTE_SPECIALIST not in endpoints:
+        return await fan_out(request, endpoints)
+
+    route = await fan_out(request, {ROUTE_SPECIALIST: endpoints[ROUTE_SPECIALIST]})
+
+    downstream = {k: v for k, v in endpoints.items() if k != ROUTE_SPECIALIST}
+    if not downstream:
+        return route
+
+    briefed = (
+        f"{request}\n\n"
+        f"The driving route is already planned. Work from the towns in it:\n"
+        f"{route[ROUTE_SPECIALIST]}"
+    )
+    return route | await fan_out(briefed, downstream)
+
+
 async def plan_trip(request: str, endpoints: dict[str, str] | None = None) -> str:
-    """Delegate in parallel, then compose the reports into one plan."""
-    reports = await fan_out(request, endpoints or SPECIALISTS)
+    """Delegate in two waves, then compose the reports into one plan."""
+    reports = await staged_fan_out(request, endpoints or SPECIALISTS)
 
     briefing = "\n\n".join(
         f"### {name}\n{report}" for name, report in sorted(reports.items())

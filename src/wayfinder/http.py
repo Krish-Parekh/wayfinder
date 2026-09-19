@@ -14,7 +14,7 @@ DEFAULT_CACHE_DIR = Path(".cache/http")
 
 HOST_MIN_INTERVAL_S = {
     "nominatim.openstreetmap.org": 1.0,
-    "brouter.de": 1.0,  # community server, one leg per request
+    "brouter.de": 1.0,
 }
 DEFAULT_MIN_INTERVAL_S = 0.1
 

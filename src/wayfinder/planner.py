@@ -1,4 +1,4 @@
-from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.streamable_http import streamable_http_client
 from strands import Agent
 from strands.tools.mcp import MCPClient
 
@@ -30,4 +30,4 @@ def build_planner(tools: list | None = None) -> Agent:
 
 
 def mcp_client() -> MCPClient:
-    return MCPClient(lambda: streamablehttp_client(settings.mcp_url))
+    return MCPClient(lambda: streamable_http_client(settings.mcp_url))
