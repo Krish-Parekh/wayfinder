@@ -37,11 +37,17 @@ def ask(
 
 
 @app.command()
-def plan(request: str) -> None:
+def plan(
+    request: str,
+    traveller: str | None = typer.Option(
+        None, "--traveller", help="Traveller id; loads and updates their profile in memory."
+    ),
+) -> None:
     """Plan a trip using the full multi-agent fleet.
 
     Requires the tools server and all three specialists to be running
-    (`just fleet`).
+    (`just fleet`). With --traveller and MEMORY_ID set, constraints from
+    previous trips are applied and this run is remembered.
     """
     import asyncio
     import logging
@@ -49,4 +55,4 @@ def plan(request: str) -> None:
     from wayfinder.orchestrator import plan_trip
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
-    typer.echo(asyncio.run(plan_trip(request)))
+    typer.echo(asyncio.run(plan_trip(request, traveller=traveller)))

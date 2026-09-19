@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     orchestrator_model_id: str = "au.anthropic.claude-sonnet-4-5-20250929-v1:0"
     specialist_model_id: str = "au.anthropic.claude-haiku-4-5-20251001-v1:0"
 
+    # AgentCore Memory resource; empty disables memory entirely.
+    memory_id: str = ""
+
     user_agent: str = "wayfinder-dev/0.1 (+https://github.com/Krish-Parekh/wayfinder)"
 
     mcp_host: str = "127.0.0.1"

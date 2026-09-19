@@ -103,8 +103,23 @@ async def staged_fan_out(request: str, endpoints: dict[str, str]) -> dict[str, s
     return route | await fan_out(briefed, downstream)
 
 
-async def plan_trip(request: str, endpoints: dict[str, str] | None = None) -> str:
-    """Delegate in two waves, then compose the reports into one plan."""
+async def plan_trip(
+    request: str,
+    endpoints: dict[str, str] | None = None,
+    *,
+    traveller: str | None = None,
+) -> str:
+    """Delegate in two waves, then compose the reports into one plan.
+
+    With a traveller id and a configured memory, known facts about them are
+    added to the request first and the finished run is saved afterwards.
+    """
+    use_memory = bool(traveller and settings.memory_id)
+    if use_memory:
+        from wayfinder import memory
+
+        request = memory.brief(request, memory.load_profile(traveller, request))
+
     reports = await staged_fan_out(request, endpoints or SPECIALISTS)
 
     briefing = "\n\n".join(
@@ -118,7 +133,10 @@ async def plan_trip(request: str, endpoints: dict[str, str] | None = None) -> st
     result = composer(
         f"Traveller request:\n{request}\n\nSpecialist reports:\n{briefing}"
     )
-    return str(result)
+    plan = str(result)
+    if use_memory:
+        memory.save_run(traveller, request, plan)
+    return plan
 
 
 if __name__ == "__main__":
