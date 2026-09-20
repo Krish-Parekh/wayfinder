@@ -1,10 +1,6 @@
-# ---- laptop -----------------------------------------------------------------
-
-# Run the MCP tools server alone
 tools:
     uv run wayfinder serve-tools
 
-# Run all four servers together on the laptop; Ctrl-C stops the lot
 fleet:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -17,7 +13,6 @@ fleet:
     echo "fleet up: tools :8000, route-planner :9001, places-researcher :9002, food-scout :9003"
     wait
 
-# Confirm every specialist is discoverable
 cards:
     #!/usr/bin/env bash
     for port in 9001 9002 9003; do
@@ -25,32 +20,36 @@ cards:
         | python3 -c "import sys,json; print(json.load(sys.stdin)['name'])"
     done
 
-# The reference request from the spec
 demo:
     uv run wayfinder plan "Sydney to Melbourne over 4 days by car. Vegetarian, one severe nut allergy, travelling with a 6-year-old, \$1200 budget."
 
-# ---- minikube ---------------------------------------------------------------
+region := "ap-southeast-2"
+ecr := "682761213103.dkr.ecr.ap-southeast-2.amazonaws.com/wayfinder"
 
-# Build the image and push it into every minikube node.
-# `minikube image load` silently keeps a stale same-tag image, so remove first.
-image:
+image target="minikube":
     #!/usr/bin/env bash
     set -euo pipefail
-    docker build -q -t wayfinder:dev .
-    for n in $(kubectl get nodes -o name | cut -d/ -f2); do
-      minikube ssh -p cka-learn -n "$n" -- docker rmi -f wayfinder:dev >/dev/null 2>&1 || true
-    done
-    minikube image load wayfinder:dev -p cka-learn
+    case "{{target}}" in
+      minikube)
+        docker build -q -t wayfinder:dev .
+        for n in $(kubectl get nodes -o name | cut -d/ -f2); do
+          minikube ssh -p cka-learn -n "$n" -- docker rmi -f wayfinder:dev >/dev/null 2>&1 || true
+        done
+        minikube image load wayfinder:dev -p cka-learn ;;
+      eks)
+        aws ecr get-login-password --region {{region}} \
+          | docker login --username AWS --password-stdin "$(cut -d/ -f1 <<< {{ecr}})"
+        docker buildx build --platform linux/amd64 -t {{ecr}}:dev --push . ;;
+      *) echo "unknown target {{target}}" >&2; exit 1 ;;
+    esac
 
-# Apply every manifest; generates the Secret from ~/.aws/credentials first
-deploy:
-    ./scripts/make-secret.sh
-    kubectl apply -f k8s/namespace.yml -f k8s/secret.yml -f k8s/configmap.yml
-    kubectl apply -f k8s/tools.yml -f k8s/route-planner.yml -f k8s/places-researcher.yml -f k8s/food-scout.yml
-    kubectl apply -f k8s/pdb.yml -f k8s/networkpolicy.yml
-    kubectl wait -n wayfinder --for=condition=ready pod -l role=specialist --timeout=180s
+deploy target="minikube":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "{{target}}" = minikube ]; then ./scripts/make-secret.sh; fi
+    kubectl apply -k k8s/overlays/{{target}}
+    kubectl wait -n wayfinder --for=condition=ready pod -l role=specialist --timeout=420s
 
-# Forward the three specialists to localhost so `just demo` hits the cluster
 forward:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -60,3 +59,14 @@ forward:
     kubectl port-forward -n wayfinder svc/food-scout 9003:9003 &
     echo "forwarding :9001 :9002 :9003 -> cluster; Ctrl-C stops"
     wait
+
+infra-up:
+    terraform -chdir=infra init -input=false
+    terraform -chdir=infra apply -input=false
+
+kubeconfig:
+    aws eks update-kubeconfig --region {{region}} --name wayfinder
+
+infra-down:
+    -kubectl delete namespace wayfinder --timeout=180s
+    terraform -chdir=infra destroy -input=false

@@ -1,36 +1,33 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: food-scout
+  name: places-researcher
   namespace: wayfinder
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: food-scout
+      app: places-researcher
   template:
     metadata:
       labels:
-        app: food-scout
+        app: places-researcher
         role: specialist
     spec:
       enableServiceLinks: false
       containers:
-        - name: food-scout
-          image: wayfinder:dev
-          imagePullPolicy: Never
-          command: ["python", "-m", "wayfinder.food_scout"]
+        - name: places-researcher
+          image: wayfinder
+          command: ["python", "-m", "wayfinder.places_researcher"]
           envFrom:
             - configMapRef:
                 name: wayfinder-config
-            - secretRef:
-                name: bedrock-creds
           ports:
-            - containerPort: 9003
+            - containerPort: 9002
           readinessProbe:
             httpGet:
               path: /.well-known/agent-card.json
-              port: 9003
+              port: 9002
             initialDelaySeconds: 5
             periodSeconds: 5
           resources:
@@ -40,13 +37,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: food-scout
+  name: places-researcher
   namespace: wayfinder
 spec:
-  type: NodePort
   selector:
-    app: food-scout
+    app: places-researcher
   ports:
-    - port: 9003
-      targetPort: 9003
-      nodePort: 30003
+    - port: 9002
+      targetPort: 9002

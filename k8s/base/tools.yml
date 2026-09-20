@@ -38,8 +38,7 @@ spec:
               mountPath: /app/.cache
       containers:
         - name: tools
-          image: wayfinder:dev
-          imagePullPolicy: Never
+          image: wayfinder
           command: ["wayfinder", "serve-tools"]
           env:
             - name: MCP_HOST

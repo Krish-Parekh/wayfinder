@@ -31,11 +31,12 @@ credentials
 .idea/
 .vscode/
 
-# design docs stay local
-docs/
+# planning notes stay local, but the README's diagrams have to ship
+docs/*
+!docs/architecture/
 
 # HTTP response cache
 .cache/
 
-# Real Bedrock credentials for the cluster; see k8s/secret.example.yml
-k8s/secret.yml
+# Real Bedrock credentials for minikube; see k8s/overlays/minikube/secret.example.yml
+k8s/overlays/minikube/secret.yml
